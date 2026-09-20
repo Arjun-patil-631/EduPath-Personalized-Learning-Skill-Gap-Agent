@@ -6,6 +6,7 @@ from app.models.assessment import AssessmentQuestion, AssessmentOption
 from app.models.roadmap import Roadmap, RoadmapStage, RoadmapNode
 from app.models.challenge import Challenge, TestCase
 from app.models.evaluation import EvaluationRecord
+from app.models.plan import LearningPlan
 from app.models.progress import ActivityLog
 from app.services.readiness_engine import calculate_role_readiness
 
@@ -586,6 +587,7 @@ def reset_demo_state_in_db(db: Session, user_id: str = "usr_948271"):
             stats_node.node_order = 2
             stats_node.status = "in_progress"
 
-    # Remove previous evaluations for clean demo
+    # Remove previous evaluations and learning plans for clean demo
     db.query(EvaluationRecord).filter(EvaluationRecord.user_id == user_id).delete()
+    db.query(LearningPlan).filter(LearningPlan.user_id == user_id).delete()
     db.commit()

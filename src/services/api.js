@@ -482,6 +482,18 @@ export const api = {
   },
 
   /**
+   * Fetch the latest AI-generated learning plan
+   * FastAPI: GET /api/v1/planner/plan/latest
+   */
+  async getLatestLearningPlan() {
+    if (USE_MOCK) {
+      return { success: true, data: null };
+    }
+    const res = await fetch(`${API_BASE_URL}/v1/planner/plan/latest`);
+    return await res.json();
+  },
+
+  /**
    * Reset demonstration state back to sample initial state
    * (Allows continuous walkthrough of the Core Product Loop)
    */
@@ -495,6 +507,15 @@ export const api = {
       lastEvaluation: null,
     };
     persistState();
+
+    if (!USE_MOCK) {
+      try {
+        await fetch(`${API_BASE_URL}/v1/demo/reset`, { method: "POST" });
+      } catch (err) {
+        console.warn("Backend demo reset failed:", err);
+      }
+    }
+
     return { success: true };
   },
 };
