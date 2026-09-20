@@ -11,9 +11,37 @@ from app.schemas.challenge import (
     RoadmapUpdateDetail,
     ReadinessUpdateDetail,
 )
+from app.schemas.evaluation import AIEvaluationSubmitRequest, AdaptationData
+from app.services.adaptation_engine import trigger_adaptation
 from app.utils.exceptions import ResourceNotFoundException
 
 router = APIRouter(tags=["Evaluations"])
+
+@router.post("/v1/evaluations/submit", response_model=StandardEnvelope[AdaptationData])
+def submit_ai_evaluation(
+    body: AIEvaluationSubmitRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Validates structured evaluation from the Evaluation Agent / n8n and triggers
+    the authoritative deterministic adaptive loop:
+    1. Updates skill score based on verified score
+    2. Recalculates role readiness
+    3. Mutates roadmap DAG
+    4. Computes changed skill gaps & new next-best-action
+    5. Persists evaluation record and activity log
+    """
+    challenge_id = body.challengeId or "act_prob_771"
+    adaptation_result = trigger_adaptation(
+        db=db,
+        user_id=settings.DEFAULT_USER_ID,
+        challenge_id=challenge_id,
+        score=body.score,
+        feedback=body.feedback,
+        evidence=body.evidence,
+        skill_name=body.skill,
+    )
+    return StandardEnvelope(data=AdaptationData(**adaptation_result))
 
 @router.get("/v1/evaluations/{evaluationId}", response_model=StandardEnvelope[EvaluationResultData])
 @router.get("/v1/evaluations", response_model=StandardEnvelope[EvaluationResultData])

@@ -6,6 +6,7 @@ from app.routers.recommendations import router as recommendations_router
 from app.routers.assessments import router as assessments_router
 from app.routers.challenges import router as challenges_router
 from app.routers.evaluations import router as evaluations_router
+from app.routers.planner import router as planner_router
 from app.routers.demo import router as demo_router
 
 __all__ = [
@@ -17,5 +18,7 @@ __all__ = [
     "assessments_router",
     "challenges_router",
     "evaluations_router",
+    "planner_router",
     "demo_router",
 ]
+

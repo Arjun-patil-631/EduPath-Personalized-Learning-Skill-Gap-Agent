@@ -19,9 +19,11 @@ from app.schemas.challenge import (
     RoadmapUpdateDetail,
     ReadinessUpdateDetail,
 )
+from app.schemas.evaluation import AIEvaluationSubmitRequest, AdaptationData
 from app.services.evaluation_sandbox import evaluate_code_solution
 from app.services.readiness_engine import calculate_role_readiness
 from app.services.roadmap_engine import mutate_roadmap_adaptive
+from app.services.adaptation_engine import trigger_adaptation
 from app.utils.exceptions import ResourceNotFoundException
 
 router = APIRouter(tags=["Challenges"])
@@ -189,3 +191,25 @@ def evaluate_challenge(
             earnedXp=eval_metrics["earnedXp"],
         )
     )
+
+@router.post("/v1/challenges/{challengeId}/evaluate-ai", response_model=StandardEnvelope[AdaptationData])
+def evaluate_challenge_ai(
+    challengeId: str,
+    body: AIEvaluationSubmitRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Direct challenge AI evaluation endpoint: validates evaluation criteria and triggers
+    the closed-loop adaptation mutation.
+    """
+    adaptation_result = trigger_adaptation(
+        db=db,
+        user_id=settings.DEFAULT_USER_ID,
+        challenge_id=challengeId,
+        score=body.score,
+        feedback=body.feedback,
+        evidence=body.evidence,
+        skill_name=body.skill,
+    )
+    return StandardEnvelope(data=AdaptationData(**adaptation_result))
+
