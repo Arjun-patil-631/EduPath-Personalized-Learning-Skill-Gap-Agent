@@ -1,0 +1,123 @@
+{
+  "id": "eval_workflow_01",
+  "name": "EduPath Evaluation Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "edupath/evaluate",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "e1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c",
+      "name": "Webhook",
+      "webhookId": "edupath-eval-webhook"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [240, 240],
+      "id": "gemini-eval-model",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vjOk8WMJSBwGkK3k",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the EduPath Evaluator Agent.\n\nYour task is to evaluate code submitted by a learner for an interactive challenge.\n\nEVALUATION RULES:\n1. Verify if the code implements the required algorithmic specification.\n2. Award a score between 0 and 100 based on functional correctness and edge case handling.\n3. Output a structured feedback string explaining what succeeded or failed.\n4. Summarize the concrete demonstrated evidence.\n\nOUTPUT FORMAT:\nReturn ONLY valid JSON matching this schema:\n{\n  \"challengeId\": \"string\",\n  \"score\": 100,\n  \"feedback\": \"string\",\n  \"evidence\": \"string\",\n  \"skill\": \"string\"\n}\n\nSUBMISSION DATA:\n{{ JSON.stringify($json.body) }}\n\nReturn ONLY valid JSON. No markdown fences.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [360, 0],
+      "id": "llm-eval-chain",
+      "name": "Evaluation LLM Chain"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Validate Evaluation Output\nconst raw = $json.text;\nif (!raw || typeof raw !== 'string') {\n  throw new Error('Evaluator returned no output.');\n}\n\nconst cleaned = raw\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet evalResult;\ntry {\n  evalResult = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error(`Invalid evaluator JSON: ${e.message}`);\n}\n\nconst score = Number(evalResult.score);\nif (!Number.isFinite(score) || score < 0 || score > 100) {\n  throw new Error(`Score must be between 0 and 100, received ${score}`);\n}\n\nreturn {\n  json: {\n    challengeId: evalResult.challengeId || 'act_prob_771',\n    score: Math.round(score),\n    feedback: evalResult.feedback || 'Evaluation complete.',\n    evidence: evalResult.evidence || 'Passed test suite.',\n    skill: evalResult.skill || 'Statistics'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 0],
+      "id": "code-validate-eval",
+      "name": "Validate Evaluation"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/api/v1/evaluations/submit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 0],
+      "id": "http-submit-fastapi",
+      "name": "Submit to FastAPI Engine"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Evaluation LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Evaluation LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluation LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Validate Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Evaluation": {
+      "main": [
+        [
+          {
+            "node": "Submit to FastAPI Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

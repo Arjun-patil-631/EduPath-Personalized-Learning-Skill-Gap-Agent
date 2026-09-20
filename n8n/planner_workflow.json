@@ -1,0 +1,232 @@
+{
+  "id": "gLjfLDUz3G1oeKvy",
+  "name": "EduPath Planner Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "edupath/planner",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "9b9cb49b-b019-42f9-a931-5b67e2dc8e7f",
+      "name": "Webhook",
+      "webhookId": "ac065bc3-f3d7-4a27-903f-4f3c9f586b6e"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/api/v1/learner/profile",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [224, 0],
+      "id": "cc94b4cf-5a03-40d8-add9-f4ff05269d7a",
+      "name": "Get Learner Profile"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/api/v1/skills/gap-analysis",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [448, 0],
+      "id": "f2583180-c9c8-4cc7-bbfb-3b6908943c7f",
+      "name": "Get Skill Gaps"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8000/api/v1/roadmap",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [672, 0],
+      "id": "28e4e7a4-4160-4871-9b61-915bd3216438",
+      "name": "Get Roadmap"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0cc05b4e-e670-4601-98df-eb8e3c872342",
+              "name": "=learnerProfile",
+              "value": "={{ $('Get Learner Profile').item.json.data }}",
+              "type": "object"
+            },
+            {
+              "id": "4661e2a0-8549-4931-83ac-8e87f1f21c5b",
+              "name": "=skillGap ",
+              "value": "={{ $('Get Skill Gaps').item.json.data }}",
+              "type": "object"
+            },
+            {
+              "id": "69f98dcc-fbb2-43f5-bc29-e27b92d03e99",
+              "name": "=roadmap",
+              "value": "={{ $('Get Roadmap').item.json.data }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [912, 0],
+      "id": "92c5160f-dfd9-4584-8f54-23975e12867a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [1008, 240],
+      "id": "de95e9e8-cc6c-4e77-ae18-427412151e50",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vjOk8WMJSBwGkK3k",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the EduPath Planner Agent.\n\nYour task is to generate a focused, personalized NEXT LEARNING PLAN using only the live learner state supplied by FastAPI.\n\nFASTAPI IS THE SOURCE OF TRUTH.\n\nSTRICT FACTUALITY:\nNever invent, assume, infer, or fabricate:\n- learner name or identity\n- educational background\n- work experience\n- prior experience\n- certifications\n- achievements\n- skills\n- skill scores\n- preferences\n- learner history\n\nIf information is not explicitly present in the supplied data, do not mention it.\n\nDo not address the learner by name unless a name is explicitly provided.\n\nPLANNING PRIORITIES:\n1. Identify the highest-priority actionable learning need.\n2. Consider skill gap size.\n3. Consider urgency.\n4. Consider the learner's current skill score.\n5. Consider the existing roadmap and its stage/node status.\n6. Respect prerequisites represented by the roadmap.\n7. Consider weekly commitment.\n8. Adapt activities to the learner's learning style.\n9. Avoid recommending completed modules.\n10. Avoid recommending locked roadmap nodes as immediate actions unless the roadmap data indicates they are now actionable.\n11. Prefer a focused next-step plan instead of attempting to solve every skill gap at once.\n\nNEXT BEST ACTION:\nThe purpose of this plan is to identify what the learner should work on next.\n\nGenerate only 1–3 highly relevant learning steps.\n\nTIME CONSTRAINT:\nThe learner's weekly commitment is provided in the profile.\n\nKeep the generated plan realistic for that weekly commitment.\n\nDo not generate hundreds of minutes of work that cannot reasonably fit the learner's available time.\n\nConsider the current roadmap estimated duration when deciding scope.\n\nLEARNING STYLE:\nUse the learner's supplied learning style to shape the practice activities.\n\nIf the learner prefers hands-on/code-first learning, prioritize practical implementation and measurable coding evidence.\n\nEVIDENCE:\nEvery step must have a concrete success/evidence criterion that can later be evaluated.\n\nDo not claim that the learner has completed something unless the supplied data explicitly says so.\n\nOUTPUT:\nReturn ONLY valid JSON.\n\nDo not return Markdown.\nDo not return ```json.\nDo not return explanations outside the JSON.\n\nRequired structure:\n\n{\n  \"plan_title\": \"string\",\n  \"reason\": \"string\",\n  \"steps\": [\n    {\n      \"skill\": \"string\",\n      \"topic\": \"string\",\n      \"duration_minutes\": 0,\n      \"practice\": \"string\",\n      \"evidence\": \"string\",\n      \"priority\": \"high\"\n    }\n  ]\n}\n\npriority must be exactly:\n\"high\", \"medium\", or \"low\".\n\nduration_minutes must be a positive integer.\n\nSteps must be ordered from highest priority to lowest priority.\n\nLEARNER STATE:\n{{ JSON.stringify($json) }}\n\nreturn ONLY valid JSON.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [1104, 0],
+      "id": "3564b434-6753-421a-a03c-6dd1fec06d9c",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// EduPath Planner Output Validator\n\nconst raw = $json.text;\n\nif (!raw || typeof raw !== 'string') {\n  throw new Error('Planner returned no text output.');\n}\n\n// Remove accidental Markdown JSON fences if the model adds them\nconst cleaned = raw\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nlet plan;\n\ntry {\n  plan = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Planner returned invalid JSON: ${error.message}`\n  );\n}\n\n// Top-level validation\nif (!plan.plan_title || typeof plan.plan_title !== 'string') {\n  throw new Error('Missing or invalid plan_title.');\n}\n\nif (!plan.reason || typeof plan.reason !== 'string') {\n  throw new Error('Missing or invalid reason.');\n}\n\nif (!Array.isArray(plan.steps)) {\n  throw new Error('steps must be an array.');\n}\n\nif (plan.steps.length < 1 || plan.steps.length > 3) {\n  throw new Error('Planner must return between 1 and 3 learning steps.');\n}\n\n// Get learner commitment from the previous context node\nconst learnerProfile =\n  $('Edit Fields').item.json.learnerProfile;\n\nconst weeklyHours =\n  Number(learnerProfile?.weeklyCommitmentHours);\n\nif (!Number.isFinite(weeklyHours) || weeklyHours <= 0) {\n  throw new Error('Invalid weekly commitment in learner profile.');\n}\n\nconst maxMinutes = weeklyHours * 60;\n\nlet totalMinutes = 0;\n\nconst validPriorities = ['high', 'medium', 'low'];\n\nfor (let i = 0; i < plan.steps.length; i++) {\n  const step = plan.steps[i];\n\n  const requiredFields = [\n    'skill',\n    'topic',\n    'duration_minutes',\n    'practice',\n    'evidence',\n    'priority'\n  ];\n\n  for (const field of requiredFields) {\n    if (\n      step[field] === undefined ||\n      step[field] === null ||\n      step[field] === ''\n    ) {\n      throw new Error(\n        `Step ${i + 1} is missing required field: ${field}`\n      );\n    }\n  }\n\n  const duration = Number(step.duration_minutes);\n\n  if (!Number.isInteger(duration) || duration <= 0) {\n    throw new Error(\n      `Step ${i + 1} has invalid duration_minutes.`\n    );\n  }\n\n  if (!validPriorities.includes(step.priority)) {\n    throw new Error(\n      `Step ${i + 1} has invalid priority: ${step.priority}`\n    );\n  }\n\n  totalMinutes += duration;\n}\n\n// Time constraint\nif (totalMinutes > maxMinutes) {\n  throw new Error(\n    `Planner generated ${totalMinutes} minutes, ` +\n    `but learner has only ${maxMinutes} minutes available this week.`\n  );\n}\n\n// Return validated structured data\nreturn {\n  json: {\n    valid: true,\n    plan: plan,\n    validation: {\n      totalSteps: plan.steps.length,\n      totalMinutes: totalMinutes,\n      weeklyCommitmentHours: weeklyHours,\n      withinWeeklyCommitment: true\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1472, 0],
+      "id": "d0aa7376-e37d-4099-8ebc-054d3020771c",
+      "name": "Validate Planner Output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/api/v1/planner/plan",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.plan }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1728, 0],
+      "id": "a18b7c3d-9e0f-4822-b519-7c83f15a9e01",
+      "name": "Persist Plan to FastAPI"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Learner Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Learner Profile": {
+      "main": [
+        [
+          {
+            "node": "Get Skill Gaps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Skill Gaps": {
+      "main": [
+        [
+          {
+            "node": "Get Roadmap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Roadmap": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Validate Planner Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Planner Output": {
+      "main": [
+        [
+          {
+            "node": "Persist Plan to FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
