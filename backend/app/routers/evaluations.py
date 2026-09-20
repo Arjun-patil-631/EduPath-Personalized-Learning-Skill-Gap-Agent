@@ -47,7 +47,7 @@ def submit_ai_evaluation(
 @router.get("/v1/evaluations", response_model=StandardEnvelope[EvaluationResultData])
 def get_evaluation_report(evaluationId: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(EvaluationRecord).filter(EvaluationRecord.user_id == settings.DEFAULT_USER_ID)
-    if evaluationId and evaluationId != "latest":
+    if evaluationId and evaluationId not in ("latest", "undefined"):
         record = query.filter(EvaluationRecord.id == evaluationId).first()
     else:
         record = query.order_by(EvaluationRecord.completed_at.desc()).first()

@@ -8,6 +8,7 @@ export function LearnerProvider({ children }) {
   const [skillGapData, setSkillGapData] = useState(null);
   const [roadmapData, setRoadmapData] = useState(null);
   const [nextAction, setNextAction] = useState(null);
+  const [learningPlan, setLearningPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,17 +16,19 @@ export function LearnerProvider({ children }) {
     try {
       setLoading(true);
       setError(null);
-      const [profRes, gapRes, roadRes, actRes] = await Promise.all([
+      const [profRes, gapRes, roadRes, actRes, planRes] = await Promise.all([
         api.getLearnerProfile(),
         api.getSkillGapAnalysis(),
         api.getRoadmap(),
         api.getNextBestAction(),
+        api.getLatestLearningPlan(),
       ]);
 
       if (profRes.success) setProfile(profRes.data);
       if (gapRes.success) setSkillGapData(gapRes.data);
       if (roadRes.success) setRoadmapData(roadRes.data);
       if (actRes.success) setNextAction(actRes.data);
+      if (planRes && planRes.success) setLearningPlan(planRes.data);
     } catch (err) {
       console.error("Failed loading learner data:", err);
       setError("Unable to synchronize learner intelligence state.");
@@ -72,6 +75,7 @@ export function LearnerProvider({ children }) {
     skillGapData,
     roadmapData,
     nextAction,
+    learningPlan,
     loading,
     error,
     reloadAll,

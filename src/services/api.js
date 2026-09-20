@@ -468,7 +468,7 @@ export const api = {
    * Get latest evaluation feedback
    * FastAPI: GET /api/v1/evaluations/{evaluationId}
    */
-  async getEvaluation(evaluationId) {
+  async getEvaluation(evaluationId = "latest") {
     if (USE_MOCK) {
       await delay(100);
       return {
@@ -477,7 +477,8 @@ export const api = {
       };
     }
 
-    const res = await fetch(`${API_BASE_URL}/v1/evaluations/${evaluationId}`);
+    const targetId = evaluationId && evaluationId !== "undefined" ? evaluationId : "latest";
+    const res = await fetch(`${API_BASE_URL}/v1/evaluations/${targetId}`);
     return await res.json();
   },
 
