@@ -18,6 +18,7 @@ from app.routers import (
     assessments_router,
     challenges_router,
     evaluations_router,
+    planner_router,
     demo_router,
 )
 
@@ -107,6 +108,7 @@ app.include_router(recommendations_router, prefix=settings.API_PREFIX)
 app.include_router(assessments_router, prefix=settings.API_PREFIX)
 app.include_router(challenges_router, prefix=settings.API_PREFIX)
 app.include_router(evaluations_router, prefix=settings.API_PREFIX)
+app.include_router(planner_router, prefix=settings.API_PREFIX)
 app.include_router(demo_router, prefix=settings.API_PREFIX)
 
 @app.get("/api/health")

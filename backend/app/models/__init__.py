@@ -6,6 +6,7 @@ from app.models.roadmap import Roadmap, RoadmapStage, RoadmapNode
 from app.models.challenge import Challenge, TestCase
 from app.models.evaluation import EvaluationRecord
 from app.models.progress import ActivityLog
+from app.models.plan import LearningPlan, LearningPlanStep
 
 __all__ = [
     "User",
@@ -24,4 +25,6 @@ __all__ = [
     "TestCase",
     "EvaluationRecord",
     "ActivityLog",
+    "LearningPlan",
+    "LearningPlanStep",
 ]
