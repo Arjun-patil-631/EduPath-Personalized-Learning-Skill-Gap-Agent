@@ -1,0 +1,6 @@
+{
+  "name": "EduPath",
+  "description": "AI-powered personalized learning and career preparation platform with adaptive skill roadmaps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
