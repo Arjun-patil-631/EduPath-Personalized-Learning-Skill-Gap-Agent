@@ -19,6 +19,16 @@ from app.schemas.challenge import (
     RoadmapUpdateDetail,
     ReadinessUpdateDetail,
 )
+from app.schemas.plan import (
+    PlanStepCreate,
+    PlanCreate,
+    PlanStepResponse,
+    PlanResponse,
+)
+from app.schemas.evaluation import (
+    AIEvaluationSubmitRequest,
+    AdaptationData,
+)
 
 __all__ = [
     "StandardEnvelope",
@@ -46,4 +56,10 @@ __all__ = [
     "SkillUpdateDetail",
     "RoadmapUpdateDetail",
     "ReadinessUpdateDetail",
+    "PlanStepCreate",
+    "PlanCreate",
+    "PlanStepResponse",
+    "PlanResponse",
+    "AIEvaluationSubmitRequest",
+    "AdaptationData",
 ]
